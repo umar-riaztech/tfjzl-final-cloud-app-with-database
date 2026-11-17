@@ -116,7 +116,8 @@ def submit(request, course_id):
     if request.method == 'POST':
         course = get_object_or_404(Course, pk=course_id)
 
-        enrollment = Enrollment.objects.get(
+        enrollment = get_object_or_404(
+            Enrollment,
             user=request.user,
             course=course
         )
@@ -125,12 +126,13 @@ def submit(request, course_id):
             enrollment=enrollment
         )
 
-        selected_choices = request.POST
-
-        for key in selected_choices:
+        for key, value in request.POST.items():
             if key.startswith('choice_'):
-                choice_id = selected_choices[key]
-                choice = Choice.objects.get(id=choice_id)
+                choice = get_object_or_404(
+                    Choice,
+                    id=value
+                )
+
                 submission.choices.add(choice)
 
         return redirect(
@@ -162,23 +164,21 @@ def extract_answers(request):
 #def show_exam_result(request, course_id, submission_id):
 
 def show_exam_result(request, course_id, submission_id):
-    context = {}
 
     course = get_object_or_404(Course, pk=course_id)
 
     submission = get_object_or_404(
         Submission,
         id=submission_id,
-        enrollment__course=course
+        enrollment__course=course,
+        enrollment__user=request.user
     )
 
     choices = submission.choices.all()
 
     total_score = 0
 
-    questions = course.question_set.all()
-
-    for question in questions:
+    for question in course.question_set.all():
 
         correct_choices = question.choice_set.filter(
             is_correct=True
@@ -191,16 +191,19 @@ def show_exam_result(request, course_id, submission_id):
         if set(correct_choices) == set(selected_choices):
             total_score += question.grade
 
-    context['course'] = course
-    context['grade'] = total_score
-    context['choices'] = choices
+    context = {
+        'course': course,
+        'grade': total_score,
+        'choices': choices,
+        'user': request.user,
+        'submission': submission,
+    }
 
     return render(
         request,
         'onlinecourse/exam_result_bootstrap.html',
         context
     )
-
 
 
 
