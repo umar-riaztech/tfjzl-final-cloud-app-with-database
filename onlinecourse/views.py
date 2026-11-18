@@ -176,6 +176,11 @@ def show_exam_result(request, course_id, submission_id):
 
     choices = submission.choices.all()
 
+    # Get IDs of selected choices
+    selected_choice_ids = list(
+        choices.values_list('id', flat=True)
+    )
+
     total_score = 0
 
     for question in course.question_set.all():
@@ -195,6 +200,7 @@ def show_exam_result(request, course_id, submission_id):
         'course': course,
         'grade': total_score,
         'choices': choices,
+        'selected_choice_ids': selected_choice_ids,
         'user': request.user,
         'submission': submission,
     }
